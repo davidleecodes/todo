@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import Todo from "./Todo";
 import NewTodoForm from "./NewTodoForm";
 import "./TodoList.css";
+import { todosRef } from "./firebase_config";
 
 class TodoList extends Component {
   static defaultProps = {};
@@ -16,20 +17,30 @@ class TodoList extends Component {
     this.toggleCompletion = this.toggleCompletion.bind(this);
   }
 
+  componentDidMount() {
+    todosRef.on("value", snap => {
+      this.setState({ todos: Object.values(snap.val()) });
+    });
+  }
+
   remove(id) {
     this.setState({
       todos: this.state.todos.filter(c => c.id !== id)
     });
+    todosRef.child(id).remove();
   }
 
   create(newTodo) {
     this.setState({ todos: [...this.state.todos, newTodo] });
+    todosRef.child(newTodo.id).set(newTodo);
   }
 
   update(id, updatedTask) {
     const updatedTodos = this.state.todos.map(todo => {
       if (todo.id === id) {
-        return { ...todo, task: updatedTask };
+        let newTask = { ...todo, task: updatedTask };
+        todosRef.child(id).set(newTask);
+        return newTask;
       }
       return todo;
     });
@@ -39,7 +50,10 @@ class TodoList extends Component {
   toggleCompletion(id) {
     const updatedTodos = this.state.todos.map(todo => {
       if (todo.id === id) {
-        return { ...todo, completed: !todo.completed };
+        let newTask = { ...todo, completed: !todo.completed };
+
+        todosRef.child(id).set(newTask);
+        return newTask;
       }
       return todo;
     });
